@@ -68,6 +68,13 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "ssl": true,
+            "sslKey": "ssl/key.pem",
+            "sslCert": "ssl/cert.pem",
+            "host": "0.0.0.0",
+            "allowedHosts": ["all"]
+          },
           "configurations": {
             "production": {
               "buildTarget": "capture:build:production"
@@ -99,5 +106,8 @@
         }
       }
     }
+  },
+  "cli": {
+    "analytics": "de952b07-5315-4306-b3f0-1f16bc8b0637"
   }
 }

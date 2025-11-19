@@ -1,0 +1,55 @@
+<div class="student-list-container">
+  <div class="header">
+    <h2>Student List</h2>
+    <button class="btn-primary" (click)="navigateToRegister()">+ Add New Student</button>
+  </div>
+
+  <div class="loading" *ngIf="loading">
+    Loading students...
+  </div>
+
+  <div class="error-message" *ngIf="errorMessage">
+    {{ errorMessage }}
+  </div>
+
+  <div class="table-container" *ngIf="!loading && students.length > 0">
+    <table>
+      <thead>
+        <tr>
+          <th>Photo</th>
+          <th>Full Name</th>
+          <th>Student ID</th>
+          <th>Class</th>
+          <th>Phone</th>
+          <th>Address</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let student of students">
+          <td>
+            <img 
+              *ngIf="student.photoBase64" 
+              [src]="student.photoBase64" 
+              alt="{{ student.fullName }}" 
+              class="student-photo">
+            <span *ngIf="!student.photoBase64" class="no-photo">No Photo</span>
+          </td>
+          <td>{{ student.fullName }}</td>
+          <td>{{ student.studentId }}</td>
+          <td>{{ student.className || '-' }}</td>
+          <td>{{ student.phone || '-' }}</td>
+          <td>{{ student.address || '-' }}</td>
+          <td>
+            <button class="btn-danger" (click)="deleteStudent(student.id)">Delete</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="no-data" *ngIf="!loading && students.length === 0">
+    <p>No students registered yet.</p>
+    <button class="btn-primary" (click)="navigateToRegister()">Register First Student</button>
+  </div>
+</div>

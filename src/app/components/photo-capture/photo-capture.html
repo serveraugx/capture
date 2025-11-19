@@ -1,0 +1,22 @@
+<div class="photo-capture-container">
+  <div class="camera-selection" *ngIf="availableCameras.length > 1">
+    <label for="camera-select">Select Camera:</label>
+    <select id="camera-select" [(ngModel)]="selectedCameraId" (change)="onCameraChange($event)">
+      <option *ngFor="let camera of availableCameras" [value]="camera.deviceId">
+        {{ camera.label || 'Camera ' + (availableCameras.indexOf(camera) + 1) }}
+      </option>
+    </select>
+  </div>
+
+  <div class="video-container" *ngIf="!capturedPhoto">
+    <video #video width="320" height="240" autoplay></video>
+    <button type="button" class="capture-btn" (click)="capturePhoto()">Capture Photo</button>
+  </div>
+
+  <div class="preview-container" *ngIf="capturedPhoto">
+    <img [src]="capturedPhoto" alt="Captured Photo" width="320">
+    <button type="button" class="retake-btn" (click)="retakePhoto()">Retake Photo</button>
+  </div>
+
+  <canvas #canvas width="320" height="240" style="display:none;"></canvas>
+</div>
