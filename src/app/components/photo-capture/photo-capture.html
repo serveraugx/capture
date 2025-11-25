@@ -1,22 +1,84 @@
 <div class="photo-capture-container">
-  <div class="camera-selection" *ngIf="availableCameras.length > 1">
-    <label for="camera-select">Select Camera:</label>
+  <div class="camera-selection" *ngIf="availableCameras.length > 0">
+    <label for="camera-select">
+      <span class="camera-icon">📹</span> Select Camera
+      <button type="button" class="refresh-btn" (click)="refreshCameras()" title="Refresh camera list">🔄</button>
+    </label>
     <select id="camera-select" [(ngModel)]="selectedCameraId" (change)="onCameraChange($event)">
       <option *ngFor="let camera of availableCameras" [value]="camera.deviceId">
-        {{ camera.label || 'Camera ' + (availableCameras.indexOf(camera) + 1) }}
+        {{ getCameraTypeIcon(camera.label) }} {{ camera.label || 'Camera ' + (availableCameras.indexOf(camera) + 1) }}
       </option>
+    </select>
+    <div class="camera-info" *ngIf="selectedCameraId">
+      <span class="info-badge">{{ getCameraType(getSelectedCameraLabel()) }}</span>
+    </div>
+  </div>
+
+  <!-- Image Quality Settings -->
+  <div class="quality-settings">
+    <label for="quality-select">
+      <span class="setting-icon">⚙️</span> Image Quality
+    </label>
+    <select id="quality-select" [(ngModel)]="imageQuality" (change)="onQualityChange()">
+      <option [value]="0.5">Low (50%) - ~50KB</option>
+      <option [value]="0.7">Medium (70%) - ~100KB</option>
+      <option [value]="0.85">High (85%) - ~200KB</option>
+      <option [value]="0.95">Very High (95%) - ~400KB</option>
+    </select>
+  </div>
+
+  <!-- Photo Size Presets -->
+  <div class="size-settings">
+    <label for="size-select">
+      <span class="setting-icon">📐</span> Photo Size
+    </label>
+    <select id="size-select" [(ngModel)]="photoSize" (change)="onSizeChange()">
+      <option value="passport">Passport (35x45mm)</option>
+      <option value="id">ID Card (25x35mm)</option>
+      <option value="visa">Visa (50x50mm)</option>
+      <option value="custom">Custom Size</option>
     </select>
   </div>
 
   <div class="video-container" *ngIf="!capturedPhoto">
-    <video #video width="320" height="240" autoplay></video>
-    <button type="button" class="capture-btn" (click)="capturePhoto()">Capture Photo</button>
+    <video #video [width]="videoWidth" [height]="videoHeight" autoplay></video>
+    <button type="button" class="capture-btn" (click)="capturePhoto()">📸 Capture Photo</button>
   </div>
 
-  <div class="preview-container" *ngIf="capturedPhoto">
-    <img [src]="capturedPhoto" alt="Captured Photo" width="320">
-    <button type="button" class="retake-btn" (click)="retakePhoto()">Retake Photo</button>
+  <div class="preview-container" *ngIf="capturedPhoto && !showCropper">
+    <img [src]="capturedPhoto" alt="Captured Photo" [width]="displayWidth">
+    <div class="photo-info">
+      <span class="info-text">Size: {{ photoSizeInfo }}</span>
+      <span class="info-text">Quality: {{ (imageQuality * 100).toFixed(0) }}%</span>
+    </div>
+    <div class="action-buttons">
+      <button type="button" class="crop-btn" (click)="openCropper()">✂️ Crop Photo</button>
+      <button type="button" class="retake-btn" (click)="retakePhoto()">🔄 Retake Photo</button>
+      <button type="button" class="save-btn" (click)="savePhoto()">💾 Save Photo</button>
+    </div>
   </div>
 
-  <canvas #canvas width="320" height="240" style="display:none;"></canvas>
+  <!-- Image Cropper -->
+  <div class="cropper-container" *ngIf="showCropper && capturedPhoto">
+    <div class="cropper-header">
+      <h3>Crop Photo - {{ getPhotoSizeName() }}</h3>
+      <p class="crop-info">Drag to select the area to crop</p>
+    </div>
+    <div class="crop-area">
+      <canvas #cropCanvas 
+              (mousedown)="startCrop($event)" 
+              (mousemove)="updateCrop($event)" 
+              (mouseup)="endCrop()"
+              (touchstart)="startCrop($event)"
+              (touchmove)="updateCrop($event)"
+              (touchend)="endCrop()">
+      </canvas>
+    </div>
+    <div class="crop-actions">
+      <button type="button" class="apply-crop-btn" (click)="applyCrop()">✓ Apply Crop</button>
+      <button type="button" class="cancel-crop-btn" (click)="cancelCrop()">✕ Cancel</button>
+    </div>
+  </div>
+
+  <canvas #canvas [width]="canvasWidth" [height]="canvasHeight" style="display:none;"></canvas>
 </div>

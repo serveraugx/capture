@@ -8,24 +8,142 @@
 }
 
 .camera-selection {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
 .camera-selection label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #495057;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  color: white;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.camera-icon {
+  margin-right: 0.5rem;
+  font-size: 1.3rem;
+}
+
+.refresh-btn {
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.refresh-btn:hover {
+  background: white;
+  transform: rotate(180deg);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+
+.refresh-btn:active {
+  transform: rotate(180deg) scale(0.95);
 }
 
 .camera-selection select {
   width: 100%;
-  padding: 0.5rem;
-  border: 2px solid #e1e8ed;
-  border-radius: 5px;
+  padding: 0.75rem 1rem;
+  border: 3px solid #ffffff;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: white;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.camera-selection select:hover {
+  border-color: #ffd700;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.camera-selection select:focus {
+  outline: none;
+  border-color: #ffd700;
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
+}
+
+.camera-info {
+  margin-top: 0.75rem;
+  text-align: center;
+}
+
+.info-badge {
+  display: inline-block;
+  padding: 0.4rem 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #667eea;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Quality and Size Settings */
+.quality-settings,
+.size-settings {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
+}
+
+.quality-settings label,
+.size-settings label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  color: white;
+  font-weight: 700;
+  font-size: 1rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.setting-icon {
+  margin-right: 0.5rem;
+  font-size: 1.2rem;
+}
+
+.quality-settings select,
+.size-settings select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 3px solid #ffffff;
+  border-radius: 8px;
   font-size: 0.95rem;
   background: white;
   cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.quality-settings select:hover,
+.size-settings select:hover {
+  border-color: #ffd700;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.quality-settings select:focus,
+.size-settings select:focus {
+  outline: none;
+  border-color: #ffd700;
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
 }
 
 .settings-toggle {
@@ -173,6 +291,166 @@
   border-radius: 8px;
   border: 3px solid #28a745;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.photo-info {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.info-text {
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  background: #e3f2fd;
+  border-radius: 15px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1976d2;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  max-width: 640px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.capture-btn,
+.retake-btn,
+.save-btn,
+.crop-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+.capture-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.capture-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 10px rgba(102, 126, 234, 0.4);
+}
+
+.retake-btn {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.retake-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 10px rgba(240, 147, 251, 0.4);
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+}
+
+.save-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 10px rgba(79, 172, 254, 0.4);
+}
+
+.crop-btn {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  color: white;
+}
+
+.crop-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 10px rgba(67, 233, 123, 0.4);
+}
+
+/* Cropper Styles */
+.cropper-container {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border: 2px solid #dee2e6;
+}
+
+.cropper-header {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.cropper-header h3 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+  font-size: 1.3rem;
+}
+
+.crop-info {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.crop-area {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.crop-area canvas {
+  max-width: 100%;
+  height: auto;
+  border: 2px solid #667eea;
+  border-radius: 8px;
+  cursor: crosshair;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.crop-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.apply-crop-btn,
+.cancel-crop-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+.apply-crop-btn {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  color: white;
+}
+
+.apply-crop-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 10px rgba(67, 233, 123, 0.4);
+}
+
+.cancel-crop-btn {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  color: white;
+}
+
+.cancel-crop-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 10px rgba(250, 112, 154, 0.4);
 }
 
 .preview-actions {
