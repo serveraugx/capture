@@ -22,17 +22,21 @@
           <th>Class</th>
           <th>Phone</th>
           <th>Address</th>
+          <th>Resolution</th>
+          <th>Size</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let student of students">
           <td>
-            <img 
-              *ngIf="student.photoBase64" 
-              [src]="student.photoBase64" 
-              alt="{{ student.fullName }}" 
-              class="student-photo">
+            <img
+              *ngIf="student.photoBase64"
+              [src]="student.photoBase64"
+              alt="{{ student.fullName }}"
+              class="student-photo"
+              [title]="getPhotoTooltip(student)"
+            />
             <span *ngIf="!student.photoBase64" class="no-photo">No Photo</span>
           </td>
           <td>{{ student.fullName }}</td>
@@ -41,15 +45,118 @@
           <td>{{ student.phone || '-' }}</td>
           <td>{{ student.address || '-' }}</td>
           <td>
-            <button class="btn-danger" (click)="deleteStudent(student.id)">Delete</button>
+            <div class="photo-metadata" *ngIf="student.photoBase64">
+              <span
+                class="resolution-badge"
+                *ngIf="student.photoMetadata?.width && student.photoMetadata?.height"
+              >
+                📐 {{ student.photoMetadata!.width }}x{{ student.photoMetadata!.height }}
+              </span>
+              <span class="resolution-badge calculating" *ngIf="!student.photoMetadata?.width">
+                ⏳ Calculating...
+              </span>
+            </div>
+            <span *ngIf="!student.photoBase64" class="no-data">-</span>
+          </td>
+          <td>
+            <div class="photo-metadata" *ngIf="student.photoBase64">
+              <span class="size-badge" *ngIf="student.photoMetadata?.size">
+                💾 {{ formatFileSize(student.photoMetadata!.size!) }}
+              </span>
+              <span class="quality-badge" *ngIf="student.photoMetadata?.quality">
+                ⚙️ {{ student.photoMetadata!.quality }}%
+              </span>
+              <span class="size-badge calculating" *ngIf="!student.photoMetadata?.size">
+                ⏳ Calculating...
+              </span>
+            </div>
+            <span *ngIf="!student.photoBase64" class="no-data">-</span>
+          </td>
+          <td>
+            <div class="action-buttons-cell">
+              <button class="btn-view" (click)="viewStudent(student)">👁️ View</button>
+              <button class="btn-danger" (click)="deleteStudent(student.id)">🗑️ Delete</button>
+            </div>
           </td>
         </tr>
       </tbody>
     </table>
   </div>
 
-  <div class="no-data" *ngIf="!loading && students.length === 0">
+  <div class="no-data-container" *ngIf="!loading && students.length === 0">
     <p>No students registered yet.</p>
     <button class="btn-primary" (click)="navigateToRegister()">Register First Student</button>
+  </div>
+
+  <!-- Student View/Edit Modal -->
+  <div class="modal-overlay" *ngIf="selectedStudent" (click)="closeModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Student Details</h2>
+        <button class="close-btn" (click)="closeModal()">✕</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="photo-section">
+          <div class="photo-display">
+            <img 
+              *ngIf="selectedStudent.photoBase64" 
+              [src]="selectedStudent.photoBase64" 
+              alt="{{ selectedStudent.fullName }}"
+              class="modal-photo"
+            />
+            <div class="photo-metadata-display" *ngIf="selectedStudent.photoMetadata">
+              <div class="metadata-item">
+                <span class="metadata-label">Resolution:</span>
+                <span class="metadata-value">{{ selectedStudent.photoMetadata.width }}x{{ selectedStudent.photoMetadata.height }}px</span>
+              </div>
+              <div class="metadata-item">
+                <span class="metadata-label">Size:</span>
+                <span class="metadata-value">{{ formatFileSize(selectedStudent.photoMetadata.size!) }}</span>
+              </div>
+              <div class="metadata-item">
+                <span class="metadata-label">Quality:</span>
+                <span class="metadata-value">{{ selectedStudent.photoMetadata.quality }}%</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="photo-actions" *ngIf="!isEditingPhoto">
+            <button class="btn-edit" (click)="startPhotoEdit()">📸 Change Photo</button>
+          </div>
+          
+          <div class="photo-capture-section" *ngIf="isEditingPhoto">
+            <app-photo-capture (photoCaptured)="onNewPhotoCaptured($event)"></app-photo-capture>
+            <div class="edit-actions">
+              <button class="btn-save" (click)="savePhotoChanges()" [disabled]="!newPhotoBase64">💾 Save Changes</button>
+              <button class="btn-cancel" (click)="cancelPhotoEdit()">✕ Cancel</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="info-section">
+          <div class="info-row">
+            <span class="info-label">Full Name:</span>
+            <span class="info-value">{{ selectedStudent.fullName }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Student ID:</span>
+            <span class="info-value">{{ selectedStudent.studentId }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Class:</span>
+            <span class="info-value">{{ selectedStudent.className || '-' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Phone:</span>
+            <span class="info-value">{{ selectedStudent.phone || '-' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Address:</span>
+            <span class="info-value">{{ selectedStudent.address || '-' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

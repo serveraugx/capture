@@ -146,6 +146,16 @@
   box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
 }
 
+.quality-info {
+  margin: 0.5rem 0 0 0;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  color: white;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
 .settings-toggle {
   margin-bottom: 1rem;
 }

@@ -17,27 +17,15 @@
   <!-- Image Quality Settings -->
   <div class="quality-settings">
     <label for="quality-select">
-      <span class="setting-icon">⚙️</span> Image Quality
+      <span class="setting-icon">⚙️</span> Image Quality (affects file size)
     </label>
     <select id="quality-select" [(ngModel)]="imageQuality" (change)="onQualityChange()">
-      <option [value]="0.5">Low (50%) - ~50KB</option>
-      <option [value]="0.7">Medium (70%) - ~100KB</option>
-      <option [value]="0.85">High (85%) - ~200KB</option>
-      <option [value]="0.95">Very High (95%) - ~400KB</option>
+      <option [value]="0.5">Low (50%) - Smallest file</option>
+      <option [value]="0.7">Medium (70%) - Balanced</option>
+      <option [value]="0.85">High (85%) - Better quality</option>
+      <option [value]="0.95">Very High (95%) - Best quality</option>
     </select>
-  </div>
-
-  <!-- Photo Size Presets -->
-  <div class="size-settings">
-    <label for="size-select">
-      <span class="setting-icon">📐</span> Photo Size
-    </label>
-    <select id="size-select" [(ngModel)]="photoSize" (change)="onSizeChange()">
-      <option value="passport">Passport (35x45mm)</option>
-      <option value="id">ID Card (25x35mm)</option>
-      <option value="visa">Visa (50x50mm)</option>
-      <option value="custom">Custom Size</option>
-    </select>
+    <p class="quality-info">📷 Using camera's native resolution</p>
   </div>
 
   <div class="video-container" *ngIf="!capturedPhoto">

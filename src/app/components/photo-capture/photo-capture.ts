@@ -228,6 +228,24 @@ export class PhotoCapture implements OnInit, OnDestroy {
       if (this.video && this.video.nativeElement) {
         this.video.nativeElement.srcObject = this.stream;
         await this.video.nativeElement.play();
+        
+        // Wait for video metadata to load and get actual camera resolution
+        await new Promise<void>((resolve) => {
+          this.video.nativeElement.onloadedmetadata = () => {
+            const actualWidth = this.video.nativeElement.videoWidth;
+            const actualHeight = this.video.nativeElement.videoHeight;
+            
+            // Update canvas to match actual camera resolution
+            this.canvasWidth = actualWidth;
+            this.canvasHeight = actualHeight;
+            this.videoWidth = actualWidth;
+            this.videoHeight = actualHeight;
+            
+            console.log(`Camera resolution detected: ${actualWidth}x${actualHeight}`);
+            this.updatePhotoInfo();
+            resolve();
+          };
+        });
       }
     } catch (error: any) {
       console.error('Error starting camera:', error);
@@ -311,24 +329,12 @@ export class PhotoCapture implements OnInit, OnDestroy {
   }
   
   updateDimensions() {
-    const size = this.photoSizes[this.photoSize as keyof typeof this.photoSizes];
-    if (size) {
-      this.canvasWidth = size.width;
-      this.canvasHeight = size.height;
-      
-      // Update video to match aspect ratio
-      const aspectRatio = size.width / size.height;
-      this.videoHeight = 480;
-      this.videoWidth = Math.round(this.videoHeight * aspectRatio);
-      
-      // Update display width
-      this.displayWidth = Math.min(400, this.canvasWidth);
-    }
+    // Only update display width, keep canvas at camera's actual resolution
+    this.displayWidth = Math.min(400, this.canvasWidth);
     this.updatePhotoInfo();
   }
   
   updatePhotoInfo() {
-    const size = this.photoSizes[this.photoSize as keyof typeof this.photoSizes];
     const estimatedSize = Math.round((this.canvasWidth * this.canvasHeight * this.imageQuality) / 10);
     this.photoSizeInfo = `${this.canvasWidth}x${this.canvasHeight}px (~${estimatedSize}KB)`;
   }

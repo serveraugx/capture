@@ -18,7 +18,8 @@ export class StudentRegistration {
     className: '',
     phone: '',
     address: '',
-    photoBase64: ''
+    photoBase64: '',
+    photoMetadata: undefined
   };
 
   loading = false;
@@ -35,6 +36,43 @@ export class StudentRegistration {
 
   onPhotoCaptured(base64: string) {
     this.student.photoBase64 = base64;
+    
+    // Calculate and save metadata
+    if (base64) {
+      this.calculatePhotoMetadata(base64);
+    }
+  }
+
+  calculatePhotoMetadata(base64: string) {
+    const img = new Image();
+    img.onload = () => {
+      // Calculate size from base64 string
+      const base64Length = base64.length - (base64.indexOf(',') + 1);
+      const padding = (base64.charAt(base64.length - 2) === '=') ? 2 : 
+                      (base64.charAt(base64.length - 1) === '=') ? 1 : 0;
+      const sizeInBytes = (base64Length * 3 / 4) - padding;
+
+      // Extract format from base64 header
+      const formatMatch = base64.match(/data:image\/(\w+);/);
+      const format = formatMatch ? formatMatch[1] : 'jpeg';
+
+      // Extract quality from base64 (if it was encoded with quality info)
+      // Estimate quality based on compression ratio
+      const pixelCount = img.width * img.height;
+      const bytesPerPixel = sizeInBytes / pixelCount;
+      const estimatedQuality = Math.min(100, Math.round(bytesPerPixel * 100));
+
+      this.student.photoMetadata = {
+        width: img.width,
+        height: img.height,
+        size: Math.round(sizeInBytes),
+        quality: estimatedQuality > 10 ? estimatedQuality : 70,
+        format: format
+      };
+
+      console.log('Photo metadata calculated:', this.student.photoMetadata);
+    };
+    img.src = base64;
   }
 
   registerStudent() {
@@ -87,7 +125,8 @@ export class StudentRegistration {
       className: '',
       phone: '',
       address: '',
-      photoBase64: ''
+      photoBase64: '',
+      photoMetadata: undefined
     };
     this.errorMessage = '';
   }

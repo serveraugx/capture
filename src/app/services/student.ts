@@ -48,13 +48,13 @@ export class Student {
     return of(found as StudentResponse);
   }
 
-  updateStudent(id: number, student: StudentRequest): Observable<StudentResponse> {
+  updateStudent(id: number, student: Partial<StudentResponse>): Observable<StudentResponse> {
     const index = this.students.findIndex(s => s.id === id);
     if (index !== -1) {
-      this.students[index] = { id, ...student };
+      this.students[index] = { ...this.students[index], ...student };
       return of(this.students[index]);
     }
-    return of({ id, ...student });
+    throw new Error('Student not found');
   }
 
   deleteStudent(id: number): Observable<void> {
