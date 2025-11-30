@@ -95,7 +95,8 @@
 
 /* Quality and Size Settings */
 .quality-settings,
-.size-settings {
+.size-settings,
+.crop-type-settings {
   margin-bottom: 1.5rem;
   padding: 1rem;
   background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
@@ -103,8 +104,15 @@
   box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
 }
 
+/* Crop Type Settings - Different gradient */
+.crop-type-settings {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  box-shadow: 0 4px 15px rgba(67, 233, 123, 0.3);
+}
+
 .quality-settings label,
-.size-settings label {
+.size-settings label,
+.crop-type-settings label {
   display: flex;
   align-items: center;
   margin-bottom: 0.75rem;
@@ -120,7 +128,8 @@
 }
 
 .quality-settings select,
-.size-settings select {
+.size-settings select,
+.crop-type-settings select {
   width: 100%;
   padding: 0.75rem 1rem;
   border: 3px solid #ffffff;
@@ -134,13 +143,15 @@
 }
 
 .quality-settings select:hover,
-.size-settings select:hover {
+.size-settings select:hover,
+.crop-type-settings select:hover {
   border-color: #ffd700;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .quality-settings select:focus,
-.size-settings select:focus {
+.size-settings select:focus,
+.crop-type-settings select:focus {
   outline: none;
   border-color: #ffd700;
   box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
@@ -301,6 +312,23 @@
   border-radius: 8px;
   border: 3px solid #28a745;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+/* Adjust preview size based on photo type */
+.preview-passport img {
+  max-width: 300px;
+  border-color: #667eea;
+}
+
+.preview-id img {
+  max-width: 250px;
+  border-color: #f093fb;
+}
+
+.preview-custom img {
+  max-width: 500px;
+  border-color: #28a745;
 }
 
 .photo-info {
@@ -413,15 +441,23 @@
   display: flex;
   justify-content: center;
   margin-bottom: 1.5rem;
+  max-height: 70vh;
+  overflow: auto;
+  padding: 0.5rem;
+  background: #fff;
+  border-radius: 8px;
 }
 
 .crop-area canvas {
-  max-width: 100%;
+  max-width: none;
+  width: auto;
   height: auto;
+  max-height: 65vh;
   border: 2px solid #667eea;
   border-radius: 8px;
   cursor: crosshair;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  display: block;
 }
 
 .crop-actions {

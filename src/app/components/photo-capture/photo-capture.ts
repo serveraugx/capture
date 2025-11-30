@@ -1,6 +1,15 @@
 import { Component, ViewChild, ElementRef, Output, EventEmitter, OnInit, OnDestroy, PLATFORM_ID, Inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 
+interface CropType {
+  aspectRatio: number | null;
+  label: string;
+  description: string;
+  maintainAspectRatio: boolean;
+  targetWidth?: number;
+  targetHeight?: number;
+}
+
 @Component({
   selector: 'app-photo-capture',
   standalone: false,
@@ -8,70 +17,64 @@ import { isPlatformBrowser } from '@angular/common';
   styleUrl: './photo-capture.scss',
 })
 export class PhotoCapture implements OnInit, OnDestroy {
-
+  // ViewChild references
   @ViewChild('video') video!: ElementRef<HTMLVideoElement>;
   @ViewChild('canvas') canvas!: ElementRef<HTMLCanvasElement>;
   @ViewChild('cropCanvas') cropCanvas!: ElementRef<HTMLCanvasElement>;
   @Output() photoCaptured = new EventEmitter<string>();
 
+  // Camera state
   availableCameras: MediaDeviceInfo[] = [];
   selectedCameraId: string = '';
-  capturedPhoto: string = '';
   stream: MediaStream | null = null;
   isBrowser: boolean;
   
-  // Image Quality and Size Settings
-  imageQuality: number = 0.7; // Default to Medium quality (70%)
-  photoSize: string = 'passport'; // Default to passport size
+  // Photo state
+  capturedPhoto: string = '';
+  originalPhoto: string = '';
+  imageQuality: number = 0.7;
+  cropType: string = 'passport';
+  photoSizeInfo: string = '';
   
-  // Photo dimensions in pixels (at 300 DPI for print quality)
-  photoSizes = {
-    passport: { width: 413, height: 531, label: 'Passport (35x45mm)' }, // 35x45mm at 300 DPI
-    id: { width: 295, height: 413, label: 'ID Card (25x35mm)' },       // 25x35mm at 300 DPI
-    visa: { width: 591, height: 591, label: 'Visa (50x50mm)' },        // 50x50mm at 300 DPI
-    custom: { width: 640, height: 480, label: 'Custom Size' }
+  // Crop types with dimensions (at 300 DPI for print quality)
+  cropTypes: { [key: string]: CropType } = {
+    passport: { 
+      aspectRatio: 35 / 45,
+      label: 'Passport Photo (35×45mm)',
+      description: 'Standard passport photo dimensions',
+      maintainAspectRatio: true,
+      targetWidth: 413,   // 35mm at 300 DPI
+      targetHeight: 531   // 45mm at 300 DPI
+    },
+    id: { 
+      aspectRatio: 25 / 35,
+      label: 'ID Card Photo (25×35mm)',
+      description: 'ID card photo dimensions',
+      maintainAspectRatio: true,
+      targetWidth: 295,   // 25mm at 300 DPI
+      targetHeight: 413   // 35mm at 300 DPI
+    },
+    custom: { 
+      aspectRatio: null,
+      label: 'Custom / Free Crop',
+      description: 'Free-form cropping',
+      maintainAspectRatio: false
+    }
   };
   
-  // Display and canvas dimensions
-  videoWidth: number = 640;
-  videoHeight: number = 480;
+  // Canvas dimensions
   canvasWidth: number = 640;
   canvasHeight: number = 480;
-  displayWidth: number = 400;
+  displayWidth: number = 300;
   
-  // Crop functionality
+  // Crop state
   showCropper: boolean = false;
   isCropping: boolean = false;
   cropStart: { x: number, y: number } = { x: 0, y: 0 };
   cropEnd: { x: number, y: number } = { x: 0, y: 0 };
-  originalPhoto: string = '';
-  photoSizeInfo: string = '';
-  
-  // Camera settings
-  selectedResolution: string = '640x480';
-  resolutions = [
-    { label: '320x240 (Low)', value: '320x240', width: 320, height: 240 },
-    { label: '640x480 (Medium)', value: '640x480', width: 640, height: 480 },
-    { label: '1280x720 (HD)', value: '1280x720', width: 1280, height: 720 },
-    { label: '1920x1080 (Full HD)', value: '1920x1080', width: 1920, height: 1080 }
-  ];
-  
-  zoomLevel: number = 1;
-  minZoom: number = 1;
-  maxZoom: number = 1;
-  supportsZoom: boolean = false;
-  
-  facingMode: string = 'user';
-  facingModes = [
-    { label: 'Front Camera', value: 'user' },
-    { label: 'Back Camera', value: 'environment' }
-  ];
-  
-  showSettings: boolean = false;
 
   constructor(@Inject(PLATFORM_ID) private platformId: Object) {
     this.isBrowser = isPlatformBrowser(this.platformId);
-    this.updateDimensions();
   }
 
   ngOnInit() {
@@ -84,46 +87,33 @@ export class PhotoCapture implements OnInit, OnDestroy {
     this.stopCamera();
   }
 
-  getCameraType(label: string): string {
-    const lowerLabel = label.toLowerCase();
-    
-    if (lowerLabel.includes('integrated') || lowerLabel.includes('built-in') || lowerLabel.includes('facetime')) {
-      return '💻 Internal Camera';
-    } else if (lowerLabel.includes('usb') || lowerLabel.includes('external') || lowerLabel.includes('webcam')) {
-      return '🔌 External Camera';
-    } else if (lowerLabel.includes('iriun')) {
-      return '📱 Phone Camera (Iriun)';
-    } else if (lowerLabel.includes('back') || lowerLabel.includes('rear')) {
-      return '📷 Back Camera';
-    } else if (lowerLabel.includes('front')) {
-      return '🤳 Front Camera';
-    }
-    
-    // Default fallback
-    return '📹 Camera';
-  }
-
+  // Camera Management
   getCameraTypeIcon(label: string): string {
-    const lowerLabel = label.toLowerCase();
-    
-    if (lowerLabel.includes('integrated') || lowerLabel.includes('built-in') || lowerLabel.includes('facetime')) {
-      return '💻';
-    } else if (lowerLabel.includes('usb') || lowerLabel.includes('external') || lowerLabel.includes('webcam')) {
-      return '🔌';
-    } else if (lowerLabel.includes('iriun')) {
-      return '📱';
-    } else if (lowerLabel.includes('back') || lowerLabel.includes('rear')) {
-      return '📷';
-    } else if (lowerLabel.includes('front')) {
-      return '🤳';
-    }
-    
+    const lower = label.toLowerCase();
+    if (lower.includes('integrated') || lower.includes('built-in') || lower.includes('facetime')) return '💻';
+    if (lower.includes('usb') || lower.includes('external') || lower.includes('webcam')) return '🔌';
+    if (lower.includes('iriun')) return '📱';
+    if (lower.includes('back') || lower.includes('rear')) return '📷';
+    if (lower.includes('front')) return '🤳';
     return '📹';
   }
 
+  getCameraType(label: string): string {
+    const icon = this.getCameraTypeIcon(label);
+    const types: { [key: string]: string } = {
+      '💻': 'Internal Camera',
+      '🔌': 'External Camera',
+      '📱': 'Phone Camera',
+      '📷': 'Back Camera',
+      '🤳': 'Front Camera',
+      '📹': 'Camera'
+    };
+    return `${icon} ${types[icon]}`;
+  }
+
   getSelectedCameraLabel(): string {
-    const selectedCamera = this.availableCameras.find(camera => camera.deviceId === this.selectedCameraId);
-    return selectedCamera?.label || 'Unknown Camera';
+    const camera = this.availableCameras.find(c => c.deviceId === this.selectedCameraId);
+    return camera?.label || 'Unknown Camera';
   }
 
   async refreshCameras() {
@@ -131,150 +121,61 @@ export class PhotoCapture implements OnInit, OnDestroy {
   }
 
   async getCameras() {
-    if (!this.isBrowser) {
-      return;
-    }
+    if (!this.isBrowser) return;
+    
     try {
-      // First, request camera permission with aggressive enumeration
-      // This helps detect all cameras including virtual ones like Iriun
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          deviceId: undefined // Don't specify device to force detection of all
-        } 
-      });
-      
-      // Stop the permission stream
+      // Request permission and enumerate devices
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: undefined } });
       stream.getTracks().forEach(track => track.stop());
-      
-      // Wait a bit for device detection to complete
       await new Promise(resolve => setTimeout(resolve, 200));
       
-      // Once permission is granted, enumerate devices
       const devices = await navigator.mediaDevices.enumerateDevices();
-      this.availableCameras = devices.filter(device => device.kind === 'videoinput');
+      this.availableCameras = devices.filter(d => d.kind === 'videoinput');
       
-      console.log('Detected cameras:', this.availableCameras.map(c => c.label || c.deviceId));
-      
-      // Start with first camera or the already running stream
       if (this.availableCameras.length > 0) {
         this.selectedCameraId = this.availableCameras[0].deviceId;
         await this.startCamera(this.selectedCameraId);
       } else {
-        console.warn('No cameras found');
-        if (typeof window !== 'undefined') {
-          alert('No cameras detected on your device.');
-        }
+        alert('No cameras detected on your device.');
       }
     } catch (error: any) {
-      console.error('Error accessing cameras:', error);
-      
-      let errorMessage = 'Unable to access camera.';
-      
-      if (error.name === 'NotAllowedError') {
-        errorMessage = 'Camera access denied. Please allow camera permissions and refresh the page.';
-      } else if (error.name === 'NotFoundError') {
-        errorMessage = 'No camera found on your device.';
-      } else if (error.name === 'NotSupportedError') {
-        errorMessage = 'Camera access is not supported. Please use HTTPS or localhost.';
-      }
-      
-      if (typeof window !== 'undefined') {
-        alert(errorMessage);
-      }
+      const messages: { [key: string]: string } = {
+        'NotAllowedError': 'Camera access denied. Please allow permissions.',
+        'NotFoundError': 'No camera found.',
+        'NotSupportedError': 'Camera not supported. Use HTTPS or localhost.'
+      };
+      alert(messages[error.name] || 'Unable to access camera.');
     }
   }
 
   async startCamera(deviceId?: string) {
-    if (!this.isBrowser) {
-      return;
-    }
+    if (!this.isBrowser) return;
+    
     try {
       this.stopCamera();
       
-      // Get selected resolution
-      const resolution = this.resolutions.find(r => r.value === this.selectedResolution) || this.resolutions[1];
-      
-      // Build constraints with resolution and facing mode
       const constraints: MediaStreamConstraints = {
-        video: {
-          width: { ideal: resolution.width },
-          height: { ideal: resolution.height },
-          facingMode: this.facingMode
-        }
+        video: deviceId ? { deviceId: { ideal: deviceId } } : true
       };
-      
-      // Add device ID if specified
-      if (deviceId && constraints.video && typeof constraints.video !== 'boolean') {
-        constraints.video.deviceId = { ideal: deviceId };
-      }
       
       this.stream = await navigator.mediaDevices.getUserMedia(constraints);
       
-      // Check for zoom support
-      if (this.stream) {
-        const videoTrack = this.stream.getVideoTracks()[0];
-        const capabilities = videoTrack.getCapabilities() as any;
-        
-        if (capabilities.zoom) {
-          this.supportsZoom = true;
-          this.minZoom = capabilities.zoom.min || 1;
-          this.maxZoom = capabilities.zoom.max || 3;
-          this.zoomLevel = this.minZoom;
-        } else {
-          this.supportsZoom = false;
-        }
-      }
-      
-      if (this.video && this.video.nativeElement) {
+      if (this.video?.nativeElement) {
         this.video.nativeElement.srcObject = this.stream;
         await this.video.nativeElement.play();
         
-        // Wait for video metadata to load and get actual camera resolution
         await new Promise<void>((resolve) => {
           this.video.nativeElement.onloadedmetadata = () => {
-            const actualWidth = this.video.nativeElement.videoWidth;
-            const actualHeight = this.video.nativeElement.videoHeight;
-            
-            // Update canvas to match actual camera resolution
-            this.canvasWidth = actualWidth;
-            this.canvasHeight = actualHeight;
-            this.videoWidth = actualWidth;
-            this.videoHeight = actualHeight;
-            
-            console.log(`Camera resolution detected: ${actualWidth}x${actualHeight}`);
+            this.canvasWidth = this.video.nativeElement.videoWidth;
+            this.canvasHeight = this.video.nativeElement.videoHeight;
             this.updatePhotoInfo();
             resolve();
           };
         });
       }
     } catch (error: any) {
-      console.error('Error starting camera:', error);
-      
-      let errorMessage = 'Failed to start camera.';
-      
-      if (error.name === 'NotAllowedError') {
-        errorMessage = 'Camera access denied. Please allow camera permissions in your browser.';
-      } else if (error.name === 'NotFoundError') {
-        errorMessage = 'No camera found. Please connect a camera and refresh the page.';
-      } else if (error.name === 'NotReadableError') {
-        errorMessage = 'Camera is already in use by another application.';
-      } else if (error.name === 'OverconstrainedError') {
-        // If exact device fails, try without constraints
-        try {
-          this.stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          if (this.video && this.video.nativeElement) {
-            this.video.nativeElement.srcObject = this.stream;
-            await this.video.nativeElement.play();
-          }
-          return; // Success with fallback
-        } catch (fallbackError) {
-          errorMessage = 'Selected camera not available. Please try a different camera.';
-        }
-      }
-      
-      if (typeof window !== 'undefined') {
-        alert(errorMessage);
-      }
+      console.error('Camera error:', error);
+      alert('Failed to start camera.');
     }
   }
 
@@ -286,22 +187,25 @@ export class PhotoCapture implements OnInit, OnDestroy {
   }
 
   onCameraChange(event: Event) {
-    const select = event.target as HTMLSelectElement;
-    this.selectedCameraId = select.value;
+    this.selectedCameraId = (event.target as HTMLSelectElement).value;
     this.startCamera(this.selectedCameraId);
   }
 
+  // Photo Capture
   capturePhoto() {
-    if (!this.video || !this.canvas) {
-      return;
-    }
-    const context = this.canvas.nativeElement.getContext('2d');
-    if (context) {
-      context.drawImage(this.video.nativeElement, 0, 0, this.canvasWidth, this.canvasHeight);
-      this.capturedPhoto = this.canvas.nativeElement.toDataURL('image/jpeg', this.imageQuality);
-      this.originalPhoto = this.capturedPhoto;
+    if (!this.video || !this.canvas) return;
+    
+    const ctx = this.canvas.nativeElement.getContext('2d');
+    if (!ctx) return;
+    
+    ctx.drawImage(this.video.nativeElement, 0, 0, this.canvasWidth, this.canvasHeight);
+    this.capturedPhoto = this.canvas.nativeElement.toDataURL('image/jpeg', this.imageQuality);
+    this.originalPhoto = this.capturedPhoto;
+    
+    if (this.cropType !== 'custom') {
+      setTimeout(() => this.resizeToTarget(), 0);
+    } else {
       this.updatePhotoInfo();
-      this.photoCaptured.emit(this.capturedPhoto);
     }
   }
 
@@ -310,65 +214,138 @@ export class PhotoCapture implements OnInit, OnDestroy {
     this.originalPhoto = '';
     this.showCropper = false;
     this.photoCaptured.emit('');
-    // Restart the camera stream
     await this.startCamera(this.selectedCameraId);
   }
   
   savePhoto() {
-    // Emit the final photo for parent component to handle
     this.photoCaptured.emit(this.capturedPhoto);
   }
   
-  // Quality and Size Management
+  // Resize Operations
+  resizeToTarget() {
+    const config = this.cropTypes[this.cropType];
+    if (!config.targetWidth || !config.targetHeight || !this.canvas || !this.originalPhoto) return;
+    
+    const ctx = this.canvas.nativeElement.getContext('2d');
+    if (!ctx) return;
+    
+    const img = new Image();
+    img.onload = () => {
+      this.canvas.nativeElement.width = config.targetWidth!;
+      this.canvas.nativeElement.height = config.targetHeight!;
+      
+      const { cropX, cropY, cropWidth, cropHeight } = this.calculateCenterCrop(
+        img.width, img.height, config.targetWidth!, config.targetHeight!
+      );
+      
+      ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, config.targetWidth!, config.targetHeight!);
+      this.capturedPhoto = this.canvas.nativeElement.toDataURL('image/jpeg', this.imageQuality);
+      this.updatePhotoInfo();
+    };
+    img.src = this.originalPhoto;
+  }
+
+  calculateCenterCrop(srcWidth: number, srcHeight: number, targetWidth: number, targetHeight: number) {
+    const targetAspect = targetWidth / targetHeight;
+    const srcAspect = srcWidth / srcHeight;
+    
+    let cropX = 0, cropY = 0, cropWidth = srcWidth, cropHeight = srcHeight;
+    
+    if (srcAspect > targetAspect) {
+      // Crop sides
+      cropWidth = srcHeight * targetAspect;
+      cropX = (srcWidth - cropWidth) / 2;
+    } else {
+      // Crop top/bottom
+      cropHeight = srcWidth / targetAspect;
+      cropY = (srcHeight - cropHeight) / 2;
+    }
+    
+    return { cropX, cropY, cropWidth, cropHeight };
+  }
+  
+  // Settings
   onQualityChange() {
     this.updatePhotoInfo();
   }
   
-  onSizeChange() {
+  onCropTypeChange() {
     this.updateDimensions();
+    
+    if (this.capturedPhoto && !this.showCropper) {
+      if (this.cropType !== 'custom') {
+        this.resizeToTarget();
+      } else {
+        this.capturedPhoto = this.originalPhoto;
+        this.updatePhotoInfo();
+      }
+    }
+    
+    if (this.showCropper) {
+      this.initializeCropper();
+    }
   }
   
   updateDimensions() {
-    // Only update display width, keep canvas at camera's actual resolution
-    this.displayWidth = Math.min(400, this.canvasWidth);
+    const sizes: { [key: string]: number } = { passport: 300, id: 250, custom: 500 };
+    this.displayWidth = sizes[this.cropType] || 300;
     this.updatePhotoInfo();
   }
   
   updatePhotoInfo() {
-    const estimatedSize = Math.round((this.canvasWidth * this.canvasHeight * this.imageQuality) / 10);
-    this.photoSizeInfo = `${this.canvasWidth}x${this.canvasHeight}px (~${estimatedSize}KB)`;
+    if (this.capturedPhoto && !this.showCropper) {
+      const img = new Image();
+      img.onload = () => {
+        const size = Math.round((img.width * img.height * this.imageQuality) / 10);
+        this.photoSizeInfo = `${img.width}x${img.height}px (~${size}KB)`;
+      };
+      img.src = this.capturedPhoto;
+    } else {
+      const size = Math.round((this.canvasWidth * this.canvasHeight * this.imageQuality) / 10);
+      this.photoSizeInfo = `${this.canvasWidth}x${this.canvasHeight}px (~${size}KB)`;
+    }
   }
   
-  getPhotoSizeName(): string {
-    return this.photoSizes[this.photoSize as keyof typeof this.photoSizes]?.label || 'Unknown';
+  // Helper methods for template
+  getCropTypeName(): string {
+    return this.cropTypes[this.cropType]?.label || 'Unknown';
   }
   
-  // Cropping Functionality
+  getCropTypeDescription(): string {
+    return this.cropTypes[this.cropType]?.description || '';
+  }
+  
+  getCropInstructions(): string {
+    const config = this.cropTypes[this.cropType];
+    return config?.maintainAspectRatio
+      ? `Drag to select area - aspect ratio maintained for ${config.label}`
+      : 'Drag to select any area - free-form cropping';
+  }
+  
+  getPreviewClass(): string {
+    return `preview-${this.cropType}`;
+  }
+  
+  // Cropping
   openCropper() {
     this.showCropper = true;
     setTimeout(() => this.initializeCropper(), 100);
   }
   
   initializeCropper() {
-    if (!this.cropCanvas || !this.capturedPhoto) {
-      return;
-    }
+    if (!this.cropCanvas || !this.capturedPhoto) return;
     
     const canvas = this.cropCanvas.nativeElement;
     const ctx = canvas.getContext('2d');
     const img = new Image();
     
     img.onload = () => {
-      // Set canvas size to match image
       canvas.width = img.width;
       canvas.height = img.height;
-      
-      // Draw the image
       ctx?.drawImage(img, 0, 0);
       
-      // Initialize crop area (center 80% of image)
-      const size = this.photoSizes[this.photoSize as keyof typeof this.photoSizes];
-      const aspectRatio = size.width / size.height;
+      const config = this.cropTypes[this.cropType];
+      const aspectRatio = config?.aspectRatio || (img.width / img.height);
       
       const cropWidth = Math.min(img.width * 0.8, img.height * 0.8 * aspectRatio);
       const cropHeight = cropWidth / aspectRatio;
@@ -384,22 +361,15 @@ export class PhotoCapture implements OnInit, OnDestroy {
       
       this.drawCropOverlay();
     };
-    
     img.src = this.capturedPhoto;
   }
   
   startCrop(event: MouseEvent | TouchEvent) {
     this.isCropping = true;
     const rect = this.cropCanvas.nativeElement.getBoundingClientRect();
-    
-    let clientX: number, clientY: number;
-    if (event instanceof MouseEvent) {
-      clientX = event.clientX;
-      clientY = event.clientY;
-    } else {
-      clientX = event.touches[0].clientX;
-      clientY = event.touches[0].clientY;
-    }
+    const [clientX, clientY] = event instanceof MouseEvent 
+      ? [event.clientX, event.clientY]
+      : [event.touches[0].clientX, event.touches[0].clientY];
     
     const scaleX = this.cropCanvas.nativeElement.width / rect.width;
     const scaleY = this.cropCanvas.nativeElement.height / rect.height;
@@ -416,24 +386,25 @@ export class PhotoCapture implements OnInit, OnDestroy {
     
     event.preventDefault();
     const rect = this.cropCanvas.nativeElement.getBoundingClientRect();
-    
-    let clientX: number, clientY: number;
-    if (event instanceof MouseEvent) {
-      clientX = event.clientX;
-      clientY = event.clientY;
-    } else {
-      clientX = event.touches[0].clientX;
-      clientY = event.touches[0].clientY;
-    }
+    const [clientX, clientY] = event instanceof MouseEvent 
+      ? [event.clientX, event.clientY]
+      : [event.touches[0].clientX, event.touches[0].clientY];
     
     const scaleX = this.cropCanvas.nativeElement.width / rect.width;
     const scaleY = this.cropCanvas.nativeElement.height / rect.height;
     
-    this.cropEnd = {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY
-    };
+    let newX = (clientX - rect.left) * scaleX;
+    let newY = (clientY - rect.top) * scaleY;
     
+    const config = this.cropTypes[this.cropType];
+    if (config?.maintainAspectRatio && config.aspectRatio) {
+      const width = Math.abs(newX - this.cropStart.x);
+      const height = width / config.aspectRatio;
+      newX = this.cropStart.x + (newX > this.cropStart.x ? width : -width);
+      newY = this.cropStart.y + (newY > this.cropStart.y ? height : -height);
+    }
+    
+    this.cropEnd = { x: newX, y: newY };
     this.drawCropOverlay();
   }
   
@@ -448,16 +419,12 @@ export class PhotoCapture implements OnInit, OnDestroy {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
-    // Redraw original image
     const img = new Image();
     img.onload = () => {
       ctx.drawImage(img, 0, 0);
-      
-      // Draw semi-transparent overlay
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      // Clear the crop area
       const x = Math.min(this.cropStart.x, this.cropEnd.x);
       const y = Math.min(this.cropStart.y, this.cropEnd.y);
       const width = Math.abs(this.cropEnd.x - this.cropStart.x);
@@ -466,7 +433,6 @@ export class PhotoCapture implements OnInit, OnDestroy {
       ctx.clearRect(x, y, width, height);
       ctx.drawImage(img, x, y, width, height, x, y, width, height);
       
-      // Draw crop rectangle border
       ctx.strokeStyle = '#00ff00';
       ctx.lineWidth = 2;
       ctx.strokeRect(x, y, width, height);
@@ -477,60 +443,31 @@ export class PhotoCapture implements OnInit, OnDestroy {
   applyCrop() {
     if (!this.cropCanvas || !this.canvas) return;
     
-    const sourceCanvas = this.cropCanvas.nativeElement;
-    const destCanvas = this.canvas.nativeElement;
-    const ctx = destCanvas.getContext('2d');
+    const ctx = this.canvas.nativeElement.getContext('2d');
     if (!ctx) return;
     
-    // Get crop coordinates
     const x = Math.min(this.cropStart.x, this.cropEnd.x);
     const y = Math.min(this.cropStart.y, this.cropEnd.y);
     const width = Math.abs(this.cropEnd.x - this.cropStart.x);
     const height = Math.abs(this.cropEnd.y - this.cropStart.y);
     
-    // Resize destination canvas to match selected photo size
-    destCanvas.width = this.canvasWidth;
-    destCanvas.height = this.canvasHeight;
+    const config = this.cropTypes[this.cropType];
+    const targetWidth = config.targetWidth || width;
+    const targetHeight = config.targetHeight || height;
     
-    // Draw cropped and resized image
-    ctx.drawImage(sourceCanvas, x, y, width, height, 0, 0, this.canvasWidth, this.canvasHeight);
+    this.canvas.nativeElement.width = targetWidth;
+    this.canvas.nativeElement.height = targetHeight;
     
-    // Update captured photo with cropped version
-    this.capturedPhoto = destCanvas.toDataURL('image/jpeg', this.imageQuality);
+    ctx.drawImage(this.cropCanvas.nativeElement, x, y, width, height, 0, 0, targetWidth, targetHeight);
+    
+    this.capturedPhoto = this.canvas.nativeElement.toDataURL('image/jpeg', this.imageQuality);
     this.showCropper = false;
+    this.updatePhotoInfo();
     this.photoCaptured.emit(this.capturedPhoto);
   }
   
   cancelCrop() {
     this.showCropper = false;
     this.capturedPhoto = this.originalPhoto;
-  }
-
-  toggleSettings() {
-    this.showSettings = !this.showSettings;
-  }
-
-  async onResolutionChange() {
-    await this.startCamera(this.selectedCameraId);
-  }
-
-  async onFacingModeChange() {
-    // Clear device ID when switching facing mode
-    this.selectedCameraId = '';
-    await this.startCamera();
-  }
-
-  async applyZoom() {
-    if (!this.stream || !this.supportsZoom) {
-      return;
-    }
-    try {
-      const videoTrack = this.stream.getVideoTracks()[0];
-      await videoTrack.applyConstraints({
-        advanced: [{ zoom: this.zoomLevel } as any]
-      });
-    } catch (error) {
-      console.error('Error applying zoom:', error);
-    }
   }
 }

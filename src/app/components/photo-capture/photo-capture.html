@@ -28,16 +28,30 @@
     <p class="quality-info">📷 Using camera's native resolution</p>
   </div>
 
+  <!-- Crop Type Selection -->
+  <div class="crop-type-settings">
+    <label for="crop-type-select">
+      <span class="setting-icon">✂️</span> Photo Type (for cropping)
+    </label>
+    <select id="crop-type-select" [(ngModel)]="cropType" (change)="onCropTypeChange()">
+      <option value="passport">📘 Passport Photo (35×45mm)</option>
+      <option value="id">🪪 ID Card Photo (25×35mm)</option>
+      <option value="custom">🔧 Custom / Free Crop</option>
+    </select>
+    <p class="crop-info">{{ getCropTypeDescription() }}</p>
+  </div>
+
   <div class="video-container" *ngIf="!capturedPhoto">
-    <video #video [width]="videoWidth" [height]="videoHeight" autoplay></video>
+    <video #video autoplay></video>
     <button type="button" class="capture-btn" (click)="capturePhoto()">📸 Capture Photo</button>
   </div>
 
-  <div class="preview-container" *ngIf="capturedPhoto && !showCropper">
+  <div class="preview-container" *ngIf="capturedPhoto && !showCropper" [ngClass]="getPreviewClass()">
     <img [src]="capturedPhoto" alt="Captured Photo" [width]="displayWidth">
     <div class="photo-info">
       <span class="info-text">Size: {{ photoSizeInfo }}</span>
       <span class="info-text">Quality: {{ (imageQuality * 100).toFixed(0) }}%</span>
+      <span class="info-text" *ngIf="cropType !== 'custom'">{{ getCropTypeName() }}</span>
     </div>
     <div class="action-buttons">
       <button type="button" class="crop-btn" (click)="openCropper()">✂️ Crop Photo</button>
@@ -49,8 +63,8 @@
   <!-- Image Cropper -->
   <div class="cropper-container" *ngIf="showCropper && capturedPhoto">
     <div class="cropper-header">
-      <h3>Crop Photo - {{ getPhotoSizeName() }}</h3>
-      <p class="crop-info">Drag to select the area to crop</p>
+      <h3>Crop Photo - {{ getCropTypeName() }}</h3>
+      <p class="crop-info">{{ getCropInstructions() }}</p>
     </div>
     <div class="crop-area">
       <canvas #cropCanvas 
